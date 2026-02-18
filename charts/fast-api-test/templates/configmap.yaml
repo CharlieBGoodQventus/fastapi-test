@@ -1,0 +1,28 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "fast-api-test.fullname" . }}
+data:
+  APP_ENV: {{ .Values.app_env | quote }}
+  SECRETS_PATH: {{ .Values.externalSecrets.secretsPath }}
+  {{- if .Values.configMap }}
+  {{- toYaml .Values.configMap | nindent 2 }}
+  {{- end }}
+  {{- if .Values.datadog.enabled }}
+  DD_TRACE_AGENT_URL: "unix://{{ .Values.datadog.socketMountPath }}"
+  DD_DOGSTATSD_URL: "unix://{{ include "fast-api-test.dir" .Values.datadog.socketMountPath }}/dsd.socket"
+  DD_TRACE_ENABLED: {{ .Values.datadog.traceEnabled | quote }}
+  DD_SERVICE: {{ .Values.datadog.service | quote }}
+  DD_ENV: {{ .Values.app_env | quote }}
+  {{- if .Values.datadog.version }}
+  DD_VERSION: {{ .Values.datadog.version | quote }}
+  {{- else }}
+  DD_VERSION: {{ .Chart.AppVersion | quote }}
+  {{- end }}
+  DD_LOGS_INJECTION: {{ .Values.datadog.logsInjection | quote }}
+  DD_PROFILING_ENABLED: {{ .Values.datadog.profilingEnabled | quote }}
+  DD_RUNTIME_METRICS_ENABLED: {{ .Values.datadog.runtimeMetricsEnabled | quote }}
+  {{- if .Values.datadog.tags }}
+  DD_TAGS: {{ join "," .Values.datadog.tags | quote }}
+  {{- end }}
+  {{- end }}

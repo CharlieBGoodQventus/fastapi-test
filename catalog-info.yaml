@@ -1,0 +1,25 @@
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: fast-api-test
+  title: fast-api-test
+  description: This is a test for a FastAPI
+  labels:
+    tier: backend
+  annotations:
+    github.com/project-slug: analyticsMD/fast-api-test
+    backstage.io/techdocs-ref: dir:.
+    backstage.io/source-location: url:https://github.com/analyticsMD/fast-api-test
+  tags:
+    - python
+    - fastapi
+    - backend
+    - api
+  links:
+    - url: https://github.com/analyticsMD/fast-api-test
+      title: GitHub Repository
+      icon: github
+spec:
+  type: service
+  lifecycle: experimental
+  owner: group:default/charlie

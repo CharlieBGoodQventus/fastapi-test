@@ -1,0 +1,36 @@
+{{- if or .Values.rollout.enabled .Values.rollout.if_disabled_keep_replica_count_0 }}
+apiVersion: argoproj.io/v1alpha1
+kind: Rollout
+metadata:
+  name: {{ include "fast-api-test.fullname" . }}
+  labels:
+    {{- include "fast-api-test.labels" . | nindent 4 }}
+spec:
+  {{- if not .Values.autoscaling.enabled }}
+  replicas: {{ .Values.rollout.enabled | ternary .Values.replicaCount 0 }}
+  {{- else if not .Values.rollout.enabled }}
+  replicas: 0
+  {{- end }}  
+  selector:
+    matchLabels:
+      {{- include "fast-api-test.selectorLabels" . | nindent 6 }}
+  workloadRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: {{ include "fast-api-test.fullname" . }}
+    scaleDown: onsuccess  
+  strategy:
+    canary:
+      steps:
+        {{- with .Values.rollout.canary.steps}}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      canaryService: '{{ include "fast-api-test.fullname" . }}-canary'
+      stableService: '{{ include "fast-api-test.fullname" . }}-stable'
+      trafficRouting:
+        alb:
+          ingress: {{ include "fast-api-test.fullname" . }}
+          rootService: '{{ include "fast-api-test.fullname" . }}-root'
+          servicePort: {{ $.Values.service.port }}
+  revisionHistoryLimit: 3
+{{- end }}

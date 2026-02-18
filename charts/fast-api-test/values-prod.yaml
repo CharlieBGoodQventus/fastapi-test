@@ -1,0 +1,90 @@
+# Production values override
+# Usage: helm install fast-api-test . -f values.yaml -f values-prod.yaml
+
+replicaCount: 2
+
+image:
+  repository: 351480950201.dkr.ecr.us-west-2.amazonaws.com/fast-api-test
+  digest: ""
+  pullPolicy: IfNotPresent
+
+serviceAccount:
+  annotations: {}
+
+app_env: "prod"
+
+configMap: {}
+  # Add your production-specific environment variables here
+
+externalSecrets:
+  enabled: false
+  # Configure when you have secrets to manage
+  # allowedPrefixes:
+  #   - qv-prod-
+  # ssm:
+  #   enabled: true
+  #   data: []
+  # secretsManager:
+  #   enabled: true
+  #   data: []
+
+datadog:
+  enabled: true
+  service: "fast-api-test"
+  env: "prod"
+  traceEnabled: true
+  logsInjection: true
+  profilingEnabled: false
+  runtimeMetricsEnabled: true
+  tags:
+    - "team:webapps"
+    - "env:prod"
+
+ingress:
+  enabled: true
+  className: "stack-ingress-public"
+  annotations:
+    alb.ingress.kubernetes.io/scheme: internet-facing
+    alb.ingress.kubernetes.io/target-type: ip
+    alb.ingress.kubernetes.io/healthcheck-path: /status
+    alb.ingress.kubernetes.io/backend-protocol: HTTPS
+    alb.ingress.kubernetes.io/listen-ports: '[{"HTTP": 80}, {"HTTPS": 443}]'
+    alb.ingress.kubernetes.io/ssl-redirect: "443"
+    alb.ingress.kubernetes.io/certificate-arn: ""
+  hosts:
+    - host: ""
+      paths:
+        - path: /
+          pathType: Prefix
+  tls: []
+
+resources:
+  limits:
+    cpu: 2000m
+    memory: 1024Mi
+  requests:
+    cpu: 200m
+    memory: 256Mi
+
+autoscaling:
+  enabled: true
+  minReplicas: 2
+  maxReplicas: 3
+  targetCPUUtilizationPercentage: 70
+  targetMemoryUtilizationPercentage: 80
+
+podDisruptionBudget:
+  enabled: true
+  minAvailable: 1
+
+rollout:
+   canary:
+     steps:
+      - setWeight: 20
+      - pause: {}
+      - setWeight: 40
+      - pause: {duration: 40s}
+      - setWeight: 60
+      - pause: {duration: 20s}
+      - setWeight: 80
+      - pause: {duration: 20s}

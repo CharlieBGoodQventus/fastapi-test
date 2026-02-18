@@ -1,0 +1,53 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "fast-api-test.fullname" . }}{{ $.Values.rollout.enabled | ternary "-stable" "" }}
+  labels:
+    {{- include "fast-api-test.labels" . | nindent 4 }}
+spec:
+  type: {{ .Values.service.type }}
+  ports:
+    - port: {{ .Values.service.port }}
+      targetPort: https
+      protocol: {{ .Values.service.protocol }}
+      name: https
+  selector:
+    {{- include "fast-api-test.selectorLabels" . | nindent 4 }}
+
+---
+{{- if .Values.rollout.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "fast-api-test.fullname" . }}-root
+  labels:
+    {{- include "fast-api-test.labels" . | nindent 4 }}
+spec:
+  type: {{ .Values.service.type }}
+  ports:
+    - port: {{ .Values.service.port }}
+      targetPort: https
+      protocol: {{ .Values.service.protocol }}
+      name: https
+  selector:
+    {{- include "fast-api-test.selectorLabels" . | nindent 4 }}
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "fast-api-test.fullname" . }}-canary
+  labels:
+    {{- include "fast-api-test.labels" . | nindent 4 }}
+
+spec:
+  type: {{ .Values.service.type }}
+  ports:
+    - port: {{ .Values.service.port }}
+      targetPort: https
+      protocol: {{ .Values.service.protocol }}
+      name: https
+  selector:
+    {{- include "fast-api-test.selectorLabels" . | nindent 4 }}
+
+{{- end }}

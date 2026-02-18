@@ -1,0 +1,185 @@
+# Default values for fast-api-test
+
+replicaCount: 2
+
+image:
+  repository: fast-api-test
+  digest: ""
+  pullPolicy: IfNotPresent
+  tag: "latest"
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+serviceAccount:
+  create: true
+  annotations:
+    # eks.amazonaws.com/role-arn: arn:aws:iam::ACCOUNT_ID:role/SERVICE_ROLE_NAME
+  name: ""
+
+podAnnotations: {}
+podLabels: {}
+
+podSecurityContext:
+  fsGroup: 1000
+  runAsNonRoot: true
+  runAsUser: 1000
+  seccompProfile:
+    type: RuntimeDefault
+
+securityContext:
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop:
+    - ALL
+  readOnlyRootFilesystem: true
+
+certManager:
+  enabled: true
+  issuerName: ca-internal-cluster-issuer
+  issuerKind: ClusterIssuer
+  issuerGroup: cert-manager.io
+
+externalSecrets:
+  enabled: false
+  secretsPath: "/etc/secrets"
+  allowedPrefixes: []
+  ssm:
+    enabled: false
+    data: []
+    # Example:
+    # - secretKey: MY_SECRET
+    #   remoteKey: /app/dev/my-secret
+  secretsManager:
+    enabled: false
+    data: []
+    # Example:
+    # - secretKey: DB_PASSWORD
+    #   remoteKey: my-app-secret
+    #   property: password
+
+app_env: "qa"
+
+configMap: {}
+
+datadog:
+  enabled: true
+  socketPath: "/var/run/datadog/apm.socket"
+  socketMountPath: "/var/run/datadog/apm.socket"
+  service: "fast-api-test"
+  env: "qa"
+  version: ""
+  traceEnabled: true
+  logsInjection: true
+  profilingEnabled: false
+  runtimeMetricsEnabled: true
+  tags: []
+
+envFrom: []
+
+service:
+  type: NodePort
+  port: 8443
+  targetPort: 8443
+  protocol: TCP
+
+ingress:
+  enabled: true
+  className: "stack-ingress-public"
+  annotations:
+    alb.ingress.kubernetes.io/scheme: internet-facing
+    alb.ingress.kubernetes.io/target-type: ip
+    alb.ingress.kubernetes.io/healthcheck-path: /status
+    alb.ingress.kubernetes.io/healthcheck-protocol: HTTP
+    alb.ingress.kubernetes.io/listen-ports: '[{"HTTP": 80}, {"HTTPS": 443}]'
+    alb.ingress.kubernetes.io/ssl-redirect: "443"
+  hosts:
+    - host: fast-api-test.example.com
+      paths:
+        - path: /
+          pathType: Prefix
+  tls: []
+
+uvicorn:
+  workers: null
+
+resources:
+  limits:
+    cpu: 1000m
+    memory: 512Mi
+  requests:
+    cpu: 200m
+    memory: 128Mi
+
+autoscaling:
+  enabled: true
+  minReplicas: 2
+  maxReplicas: 10
+  targetCPUUtilizationPercentage: 70
+  targetMemoryUtilizationPercentage: 80
+
+podDisruptionBudget:
+  enabled: true
+  minAvailable: 1
+
+livenessProbe:
+  httpGet:
+    path: /status
+    port: 8443
+    scheme: HTTPS
+  initialDelaySeconds: 30
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 3
+  successThreshold: 1
+
+readinessProbe:
+  httpGet:
+    path: /status
+    port: 8443
+    scheme: HTTPS
+  initialDelaySeconds: 10
+  periodSeconds: 5
+  timeoutSeconds: 3
+  failureThreshold: 3
+  successThreshold: 1
+
+startupProbe:
+  httpGet:
+    path: /status
+    port: 8443
+    scheme: HTTPS
+  initialDelaySeconds: 10
+  periodSeconds: 5
+  timeoutSeconds: 3
+  failureThreshold: 30
+  successThreshold: 1
+
+nodeSelector: {}
+
+tolerations: []
+
+affinity: {}
+
+volumeMounts: []
+
+volumes: []
+
+sidecars: []
+
+lifecycle: {}
+
+rollout:
+   enabled: false
+   if_disabled_keep_replica_count_0: false
+   canary:
+     steps:
+      - setWeight: 20
+      - pause: {}
+      - setWeight: 40
+      - pause: {duration: 40s}
+      - setWeight: 60
+      - pause: {duration: 20s}
+      - setWeight: 80
+      - pause: {duration: 20s}
