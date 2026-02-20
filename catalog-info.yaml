@@ -1,25 +1,70 @@
 apiVersion: backstage.io/v1alpha1
 kind: Component
 metadata:
-  name: fast-api-test
-  title: fast-api-test
-  description: This is a test for a FastAPI
+  name: data-api-service
+  title: Data API Service
+  description: A lightweight FastAPI service that fronts the shared data layer with a consistent REST interface. Provides a unified surface to expose read/write endpoints, standardize authentication, and integrate observability.
   labels:
     tier: backend
   annotations:
-    github.com/project-slug: analyticsMD/fast-api-test
+    # GitHub integration
+    github.com/project-slug: analyticsMD/data-api-service
+
+    # GitHub Actions
+    github.com/workflows: build-and-deploy.yml,build.yml,deploy.yaml,pr-code.yaml, pr-preview-build.yml
+
+    # ArgoCD integration
+    argocd/app-name: np-argocd/data-api-service
+    argocd/instance-name: main
+
+    # TechDocs
     backstage.io/techdocs-ref: dir:.
-    backstage.io/source-location: url:https://github.com/analyticsMD/fast-api-test
+
+    # Kubernetes
+    backstage.io/kubernetes-id: data-api-service
+    backstage.io/kubernetes-namespace: data-api-service
+    backstage.io/kubernetes-label-selector: app.kubernetes.io/name=data-api-service
+
+    # Links
+    backstage.io/source-location: url:https://github.com/analyticsMD/data-api-service
   tags:
     - python
     - fastapi
     - backend
     - api
+    - databricks
+    - redis
   links:
-    - url: https://github.com/analyticsMD/fast-api-test
+    - url: https://github.com/analyticsMD/data-api-service
       title: GitHub Repository
       icon: github
+    - url: https://data-api.qventus.com/docs
+      title: API Documentation
+      icon: api
+    - url: https://data-api.qventus.com/openapi.json
+      title: OpenAPI Spec
+      icon: code
 spec:
   type: service
-  lifecycle: experimental
-  owner: group:default/charlie
+  lifecycle: production
+  owner: apps-team
+  providesApis:
+    - data-api-service-api
+---
+apiVersion: backstage.io/v1alpha1
+kind: API
+metadata:
+  name: data-api-service-api
+  title: Data API Service API
+  description: REST API provided by Data API Service for accessing shared data layer with patient data and Databricks connectivity
+  annotations:
+    github.com/project-slug: analyticsMD/data-api-service
+  tags:
+    - rest
+    - openapi
+spec:
+  type: openapi
+  lifecycle: production
+  owner: apps-team
+  definition:
+    $openapi: 'https://data-api.qventus.com/openapi.json'
