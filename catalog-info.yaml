@@ -14,7 +14,8 @@ metadata:
     github.com/workflows: build-and-deploy.yml,build.yml,deploy.yaml,pr-code.yaml, pr-preview-build.yml
 
     # ArgoCD integration
-    argocd/app-name: np-argocd/data-api-service
+    argocd/app-name: data-api-service
+    argocd/app-namespace: np-argocd
     argocd/instance-name: main
 
     # TechDocs
