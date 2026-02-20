@@ -19,7 +19,7 @@ metadata:
     argocd/instance-name: main
 
     # TechDocs
-    backstage.io/techdocs-ref: dir:.
+    backstage.io/techdocs-ref: url:https://github.com/analyticsMD/data-api-service
 
     # Kubernetes
     backstage.io/kubernetes-id: data-api-service
