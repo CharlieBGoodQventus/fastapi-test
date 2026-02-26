@@ -28,6 +28,11 @@ metadata:
 
     # Links
     backstage.io/source-location: url:https://github.com/analyticsMD/data-api-service
+
+    # ArgoCD integration
+    argocd/app-name: fastapi-test
+    argocd/app-namespace: np-argocd
+    argocd/instance-name: main
   tags:
     - python
     - fastapi
