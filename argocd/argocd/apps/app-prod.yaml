@@ -1,0 +1,30 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: fastapi-test
+  namespace: prod-argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: fastapi-test
+  source:
+    repoURL: https://github.com/CharlieBGoodQventus/fastapi-test.git
+    path: chart/fastapi-test
+    targetRevision: HEAD
+    helm:
+      valueFiles:
+      - values.yaml
+      - values-prod.yaml
+      ignoreMissingValueFiles: true
+      parameters:
+      - name: "rollout.enabled"
+        value: "true"
+  syncPolicy:
+    automated:
+      enabled: false
+    syncOptions:
+      - ApplyOutOfSyncOnly=true
+      - PruneLast=true

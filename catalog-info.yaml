@@ -7,26 +7,15 @@ metadata:
   labels:
     tier: backend
   annotations:
-    # GitHub integration
     github.com/project-slug: analyticsMD/data-api-service
-
-    # GitHub Actions
     github.com/workflows: build-and-deploy.yml,build.yml,deploy.yaml,pr-code.yaml, pr-preview-build.yml
-
-    # ArgoCD integration
-    argocd/app-name: data-api-service
+    argocd/app-name: fastapi-test
     argocd/app-namespace: np-argocd
     argocd/instance-name: main
-
-    # TechDocs
     backstage.io/techdocs-ref: url:https://github.com/analyticsMD/data-api-service
-
-    # Kubernetes
     backstage.io/kubernetes-id: data-api-service
     backstage.io/kubernetes-namespace: data-api-service
     backstage.io/kubernetes-label-selector: app.kubernetes.io/name=data-api-service
-
-    # Links
     backstage.io/source-location: url:https://github.com/analyticsMD/data-api-service
   tags:
     - python
@@ -68,4 +57,4 @@ spec:
   lifecycle: production
   owner: apps-team
   definition:
-    $openapi: 'https://data-api.qventus.com/openapi.json'
+    $openapi: https://data-api.qventus.com/openapi.json
