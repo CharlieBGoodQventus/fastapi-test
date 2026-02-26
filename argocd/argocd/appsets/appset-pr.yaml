@@ -1,0 +1,57 @@
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: fastapi-test-appset
+spec:
+  goTemplate: true
+  goTemplateOptions: ["missingkey=error"]
+  generators:
+  - pullRequest:
+      github:
+        owner: CharlieBGoodQventus
+        repo: fastapi-test
+        tokenRef:
+          secretName: github-app-repo-creds
+          key: token
+        labels:
+        - preview
+      requeueAfterSeconds: 300
+      values:
+        name: fastapi-test
+        scm_owner: CharlieBGoodQventus
+        ticket_regex: (e|E)(n|N)(g|G)-[0-9]+
+        host_prefix: fastapi-test-
+        env: qa
+  template:
+    metadata:
+      name: '{{.values.name}}-{{ regexFind .values.ticket_regex .branch_slug | slugify 25 }}-pr-{{.number}}'
+    spec:
+      source:
+        repoURL: 'https://github.com/{{.values.scm_owner}}/{{.values.name}}.git'
+        targetRevision: '{{.head_short_sha_7}}'
+        path: "charts/{{.values.name}}"
+        helm:
+          valueFiles:
+          - values.yaml
+          - values-qa.yaml
+          parameters:
+          - name: "image.tag"
+            value: "{{.head_short_sha_7}}"
+          - name: "ingress.hosts[0].host"
+            value: "{{.values.host_prefix}}{{ regexFind .values.ticket_regex .branch_slug | slugify 25 }}-pr-{{.number}}.qventus.com"
+          - name: "ingress.tls[0].secretName"
+            value: "{{.values.host_prefix}}tls-{{.values.env}}"
+          - name: "ingress.tls[0].hosts[0]"
+      project: default
+      syncPolicy:
+        automated:
+          enabled: true
+          prune: true
+        syncOptions:
+          - CreateNamespace=true
+          - ApplyOutOfSyncOnly=true
+          - PruneLast=true
+
+      destination:
+        server: https://kubernetes.default.svc
+        namespace: '{{.values.name}}-{{ regexFind .values.ticket_regex .branch_slug | slugify 25 }}-pr-{{.number}}'
