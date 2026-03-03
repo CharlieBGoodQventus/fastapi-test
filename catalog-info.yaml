@@ -1,66 +1,59 @@
 apiVersion: backstage.io/v1alpha1
 kind: Component
 metadata:
-  name: data-api-service
-  title: Data API Service
-  description: A lightweight FastAPI service that fronts the shared data layer with a consistent REST interface. Provides a unified surface to expose read/write endpoints, standardize authentication, and integrate observability.
+  name: document-assistant
+  title: Document Assistant
+  description: A Django service for OCR-based text extraction and LLM-assisted document classification and routing, deployed on Kubernetes.
   labels:
     tier: backend
   annotations:
-    # GitHub integration
-    github.com/project-slug: analyticsMD/data-api-service
-
-    # GitHub Actions
-    github.com/workflows: build-and-deploy.yml,build.yml,deploy.yaml,pr-code.yaml, pr-preview-build.yml
-
+    github.com/project-slug: analyticsMD/document-assistant
+    github.com/workflows: pr-preview-build.yml,pr-pre-commit.yml,pr-code.yml,build.yml,deploy.yml,deploy_argocd.yml,pr-helm.yml,qa-deployments.yml,prod-deployments.yml,release-reminder.yml
     # ArgoCD integration
-    argocd/app-name: data-api-service
     argocd/app-namespace: np-argocd
+    argocd/app-name: document-assistant
     argocd/instance-name: main
-
     # TechDocs
-    backstage.io/techdocs-ref: url:https://github.com/analyticsMD/data-api-service
-
-    # Kubernetes
-    backstage.io/kubernetes-id: data-api-service
-    backstage.io/kubernetes-namespace: data-api-service
-    backstage.io/kubernetes-label-selector: app.kubernetes.io/name=data-api-service
-
+    backstage.io/techdocs-ref: url:https://github.com/analyticsMD/document-assistant
+    # Kubernetes discovery
+    backstage.io/kubernetes-id: document-assistant
+    backstage.io/kubernetes-namespace: document-assistant
+    backstage.io/kubernetes-label-selector: app.kubernetes.io/name in (document-assistant-web-server,document-assistant-document-consumer,document-assistant-routing-consumer)
     # Links
-    backstage.io/source-location: url:https://github.com/analyticsMD/data-api-service
+    backstage.io/source-location: url:https://github.com/analyticsMD/document-assistant
   tags:
     - python
-    - fastapi
+    - django
     - backend
     - api
-    - databricks
-    - redis
+    - postgresql
+    - kubernetes
+    - ocr
+    - llm
+    - document-processing
   links:
-    - url: https://github.com/analyticsMD/data-api-service
+    - url: https://github.com/analyticsMD/document-assistant
       title: GitHub Repository
       icon: github
-    - url: https://data-api.qventus.com/docs
-      title: API Documentation
-      icon: api
-    - url: https://data-api.qventus.com/openapi.json
-      title: OpenAPI Spec
-      icon: code
 spec:
   type: service
-  lifecycle: production
   owner: apps-team
+  lifecycle: production
   providesApis:
-    - data-api-service-api
+    - document-assistant-api
 ---
 apiVersion: backstage.io/v1alpha1
 kind: API
 metadata:
-  name: data-api-service-api
-  title: Data API Service API
-  description: REST API provided by Data API Service for accessing shared data layer with patient data and Databricks connectivity
+  name: document-assistant-api
+  title: Document Assistant API
+  description: REST API for OCR-based document processing, classification, and routing.
   annotations:
-    github.com/project-slug: analyticsMD/data-api-service
+    github.com/project-slug: analyticsMD/document-assistant
+    backstage.io/source-location: url:https://github.com/analyticsMD/document-assistant
   tags:
+    - python
+    - django
     - rest
     - openapi
 spec:
@@ -68,4 +61,4 @@ spec:
   lifecycle: production
   owner: apps-team
   definition:
-    $openapi: 'https://data-api.qventus.com/openapi.json'
+    $text: url:https://github.com/analyticsMD/document-assistant/blob/main/openapi.yaml
