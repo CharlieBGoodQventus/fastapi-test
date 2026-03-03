@@ -61,4 +61,4 @@ spec:
   lifecycle: production
   owner: apps-team
   definition:
-    $text: url:https://github.com/analyticsMD/document-assistant/blob/main/openapi.yaml
+    $text: https://document-assistant.qventus.com/api/v1/schema/
