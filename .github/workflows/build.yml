@@ -1,0 +1,86 @@
+name: Build and Push Docker Image to ECR
+
+on:
+  workflow_call:
+    outputs:
+      image-tag:
+        description: "Docker image tag pushed to ECR"
+        value: ${{ jobs.build-and-push.outputs.BUILD_VERSION }}
+    inputs:
+      ref_name:
+        description: "ref to build"
+        required: true
+        type: string
+  workflow_dispatch:
+    inputs:
+      ref_name:
+        description: "ref to build"
+        required: true
+        type: string
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  build-and-push:
+    name: "Build and Push Image: ${{ inputs.ref_name != '' && inputs.ref_name || github.ref_name }}"
+    runs-on: ubuntu-latest
+    outputs:
+      BUILD_VERSION: ${{ steps.version.outputs.BUILD_VERSION }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.ref_name }}
+
+      - name: Assume AWS Role
+        id: aws_creds
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: "arn:aws:iam::351480950201:role/common-gha-pat-assist"
+          role-session-name: GitHub_Actions_Pat_Assist
+          aws-region: "us-west-2"
+          output-credentials: true
+
+      - name: Log in to AWS ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+        with:
+          mask-password: true
+
+      - name: Set up Docker
+        uses: docker/setup-buildx-action@v3
+
+      - name: Get Version
+        id: version
+        env:
+          RESOLVED_REF_NAME: ${{ inputs.ref_name != '' && inputs.ref_name || github.ref_name }}
+        run: |
+          git fetch --all --tags
+          COMMIT=$(git rev-parse ${RESOLVED_REF_NAME})
+          TAG=$(git tag --points-at $COMMIT | head -n1)
+          if [ -n "$TAG" ]; then
+            BUILD_VERSION="$TAG"
+          else
+            BUILD_VERSION=$(git rev-parse --short $COMMIT)
+          fi
+          echo "BUILD_VERSION=$BUILD_VERSION" >> $GITHUB_ENV
+          echo "BUILD_VERSION=$BUILD_VERSION" >> $GITHUB_OUTPUT
+
+      - name: Build and push Docker image
+        env:
+          AWS_REGION: "us-west-2"
+          REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          REPOSITORY: "fast-api-test"
+          IMAGE_TAG: ${{ steps.version.outputs.BUILD_VERSION }}
+        run: |
+          export REPOSITORY_URI="${{ env.REGISTRY }}/${{ env.REPOSITORY }}"
+          export DOCKER_CACHE_REF="$REPOSITORY_URI:build-cache"
+          echo "Building image $REPOSITORY_URI:$IMAGE_TAG..."
+          docker buildx build \
+          --platform linux/amd64 \
+          --cache-to mode=max,image-manifest=true,oci-media-types=true,type=registry,ref=$DOCKER_CACHE_REF \
+          --cache-from type=registry,ref=$DOCKER_CACHE_REF \
+          -t $REPOSITORY_URI:$IMAGE_TAG \
+          --push .

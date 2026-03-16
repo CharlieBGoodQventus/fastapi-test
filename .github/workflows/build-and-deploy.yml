@@ -1,0 +1,43 @@
+name: Builds Docker Image to ECR and Deploys Main QA
+
+on:
+  workflow_call:
+    outputs:
+      image-tag:
+        description: "Docker image tag pushed to ECR"
+        value: ${{ jobs.build-and-push.outputs.image-tag }}
+    inputs:
+      ref_name:
+        description: "ref to build"
+        required: true
+        type: string
+  workflow_dispatch:
+    inputs:
+      ref_name:
+        description: "ref to build; deploy only happens if main"
+        required: true
+        type: string
+  push:
+    branches:
+      - main
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  build-and-push:
+    name: "Build and Push Image: ${{ inputs.ref_name != '' && inputs.ref_name || github.ref_name }}"
+    uses: ./.github/workflows/build.yml
+    with:
+      ref_name: ${{ inputs.ref_name != '' && inputs.ref_name || github.ref_name }}
+    secrets: inherit
+  deploy-qa-if-main-push:
+    needs: [build-and-push]
+    name: Deploy to QA if push to main
+    uses: ./.github/workflows/deploy.yaml
+    if: ${{ (github.event_name == 'push' && github.ref_name == 'main') || (github.event_name == 'workflow_dispatch' && inputs.ref_name == 'main') }}
+    with:
+      environment: qa
+      tag: ${{ needs.build-and-push.outputs.image-tag }}
+      ref_name: ${{ inputs.ref_name != '' && inputs.ref_name || github.ref_name }}
+    secrets: inherit

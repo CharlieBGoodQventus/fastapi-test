@@ -1,0 +1,97 @@
+name: Deploy ArgoCD
+run-name: Deploy ${{ inputs.tag }} to ${{ inputs.environment }}
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: "Target Environment"
+        type: choice
+        options:
+          - qa
+          - prod
+        required: true
+      tag:
+        description: "Image tag to deploy"
+        type: string
+        required: true
+      ref_name:
+        description: "Source ref"
+        required: true
+        type: string
+  workflow_call:
+    inputs:
+      environment:
+        description: "Target Environment"
+        type: string
+        required: true
+      tag:
+        description: "Image tag to deploy"
+        type: string
+        required: true
+      ref_name:
+        description: "Source ref"
+        required: true
+        type: string
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    env:
+      ENVIRONMENT: ${{ inputs.environment }}
+      ARGOCD_APP_NAME_PREFIX: ${{ inputs.environment == 'qa' && 'np-' || 'prod-' }}
+      ARGOCD_SERVER: argocd${{ inputs.environment == 'qa' && '-np' || '-prod' }}.${{ inputs.environment == 'qa' && 'qventus' || 'qventus-int' }}.com
+      ARGOCD_AUTH_TOKEN: ${{ inputs.environment == 'qa' && secrets.ARGOCD_QA_ENGSERVICEUSER_ACCESS_TOKEN || secrets.ARGOCD_PROD_ENGSERVICEUSER_ACCESS_TOKEN }}
+
+    environment:
+      name: ${{ inputs.environment }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.ref_name }}
+      - name: Get Repository Name
+        run: |
+          REPO_NAME=${GITHUB_REPOSITORY#*/}
+          echo "REPO_NAME=${REPO_NAME}" >> "$GITHUB_ENV"
+
+      - name: Download ArgoCD CLI
+        run: |
+          curl -sSL -o /usr/local/bin/argocd https://${ARGOCD_SERVER}/download/argocd-linux-amd64
+          chmod +x /usr/local/bin/argocd
+      - name: Set image tag on ArgoCD
+        env:
+          ARGOCD_APP_NAME: ${{ env.ARGOCD_APP_NAME_PREFIX }}argocd/${{ env.REPO_NAME }}
+        run: |
+          /usr/local/bin/argocd app set ${ARGOCD_APP_NAME} \
+          --grpc-web \
+          --helm-set image.tag=${{ inputs.tag }} \
+          --revision ${{ inputs.tag }} --app-namespace ${{ vars.K8S_NAMESPACE }} \
+          --server ${ARGOCD_SERVER}
+      - name: Deploy with ArgoCD
+        env:
+          ARGOCD_APP_NAME: ${{ env.ARGOCD_APP_NAME_PREFIX }}argocd/${{ env.REPO_NAME }}
+        run: |
+          /usr/local/bin/argocd app sync ${ARGOCD_APP_NAME} \
+          --grpc-web \
+          --revision ${{ inputs.tag }} --timeout 600 --app-namespace ${{ vars.K8S_NAMESPACE }} \
+          --server ${ARGOCD_SERVER}
+          /usr/local/bin/argocd app wait ${ARGOCD_APP_NAME} \
+          --grpc-web \
+          --health \
+          --timeout 600 \
+          --server ${ARGOCD_SERVER}
+
+      - name: Debug failed QA deployment
+        env:
+          ARGOCD_APP_NAME: ${{ env.ARGOCD_APP_NAME_PREFIX }}argocd/${{ env.REPO_NAME }}
+        if: ${{ failure() && env.ENVIRONMENT == 'qa' }}
+        run: |
+          /usr/local/bin/argocd app logs ${ARGOCD_APP_NAME} \
+          --grpc-web \
+          "--filter \"error\" --since-seconds 300 --namespace ${{ vars.K8S_NAMESPACE }}"

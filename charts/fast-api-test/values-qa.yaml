@@ -4,7 +4,8 @@
 replicaCount: 2
 
 image:
-  repository: 351480950201.dkr.ecr.us-west-2.amazonaws.com/fast-api-test
+  repository: fast-api-test
+  tag: "test"
   digest: ""
   pullPolicy: IfNotPresent
 
