@@ -88,3 +88,5 @@ rollout:
       - pause: {duration: 20s}
       - setWeight: 80
       - pause: {duration: 20s}
+
+authApplication: {}

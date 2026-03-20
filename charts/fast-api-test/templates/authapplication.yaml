@@ -1,0 +1,17 @@
+{{- if .Values.authApplication.enabled }}
+apiVersion: auth.qventus.io/v1
+kind: AuthApplication
+metadata:
+  name: {{ printf "%s-authapplication" .Release.Name | trunc 63 | trimSuffix "-" }}
+  labels:
+    app.kubernetes.io/name: {{ .Chart.Name }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+spec:
+  name: {{ .Values.authApplication.name | default .Chart.Name | quote }}
+  {{- with .Values.authApplication.organization }}
+  organization: {{ . | quote }}
+  {{- end }}
+  clientType: {{ .Values.authApplication.clientType | quote }}
+  grantType: {{ .Values.authApplication.grantType | quote }}
+  algorithm: {{ .Values.authApplication.algorithm | quote }}
+{{- end }}
