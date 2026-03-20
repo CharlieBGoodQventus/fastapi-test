@@ -183,3 +183,11 @@ rollout:
       - pause: {duration: 20s}
       - setWeight: 80
       - pause: {duration: 20s}
+
+authApplication:
+  enabled: true
+  name: fast-api-test
+  organization: test
+  clientType: public
+  grantType: client-credentials
+  algorithm: RS256
