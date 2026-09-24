@@ -1,0 +1,63 @@
+name: Build & Push Docker Image to ECR
+
+on:
+  workflow_call:
+    inputs:
+      aws-role-arn:
+        description: "AWS IAM role ARN to assume"
+        type: string
+        default: arn:aws:iam::351480950201:role/terraform-githubactions
+      ref:
+        description: "Ref to check out (branch name, tag, or commit SHA). Omit to use the ref that triggered the workflow."
+        required: false
+        type: string
+      image-tag:
+        description: "Tag to apply to the built Docker image"
+        required: true
+        type: string
+
+permissions:
+  id-token: write
+  contents: read
+
+env:
+  AWS_REGION: us-west-2
+  CACHE_TAG: buildcache
+  ECR_IMAGE_REPOSITORY: 351480950201.dkr.us-west-2.amazonaws.com/one-more-test
+
+jobs:
+  build:
+    name: Build & Push to ECR
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ inputs.ref }}
+
+      - name: Assume AWS deploy role
+        uses: aws-actions/configure-aws-credentials@v5.1.0
+        with:
+          role-to-assume: ${{ inputs.aws-role-arn }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+        with:
+          driver-opts: |
+            image=moby/buildkit:latest
+
+      - name: Login to Amazon ECR
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build & Push (w/ cache)
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: Dockerfile
+          push: true
+          tags: |
+            ${{ env.ECR_IMAGE_REPOSITORY }}:${{ inputs.image-tag }}
+          cache-from: type=registry,ref=${{ env.ECR_IMAGE_REPOSITORY }}:${{ env.CACHE_TAG }}
+          cache-to: type=registry,ref=${{ env.ECR_IMAGE_REPOSITORY }}:${{ env.CACHE_TAG }},mode=max

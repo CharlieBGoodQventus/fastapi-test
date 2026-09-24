@@ -1,0 +1,43 @@
+name: CI
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, edited]
+
+jobs:
+  lint-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check PR title
+        if: ${{ github.event_name == 'pull_request' }}
+        uses: analyticsMD/.github/composite-actions/PR-title-check@main
+
+      - uses: actions/checkout@v6
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v6
+        with:
+          version: "latest"
+
+      - name: Set up Python
+        run: uv python install
+
+      - name: Setup to install private packages
+        uses: analyticsMD/.github/composite-actions/analyticsmd-github-python-packages-setup@main
+        with:
+          github_token: ${{ secrets.API_TOKEN_GITHUB }}
+
+      - name: Install dependencies
+        run: uv sync --locked --all-extras --dev
+
+      - name: Lint with ruff
+        run: uv run ruff check .
+
+      - name: Format check with ruff
+        run: uv run ruff format --check .
+
+      - name: Type check with ty
+        run: uv run ty check
+
+      - name: Run tests
+        run: uv run pytest
