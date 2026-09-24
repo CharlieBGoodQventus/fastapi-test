@@ -1,0 +1,13 @@
+name: Build on Merge to Main
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  build-and-push:
+    uses: ./.github/workflows/build-and-push.yml
+    with:
+      image-tag: ${{ github.sha }}
+      ref: ${{ github.sha }}
+    secrets: inherit
