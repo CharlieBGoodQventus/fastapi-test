@@ -1,0 +1,5 @@
+# Keep qa overrides minimal; set only fields that differ from values.yaml.
+# authApplication:
+#   name: fastapi-test-qa
+#   organization: qa
+authApplication: {}

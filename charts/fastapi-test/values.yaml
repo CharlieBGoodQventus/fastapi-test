@@ -1,0 +1,8 @@
+authApplication:
+  enabled: true
+  name: fastapi-test
+  organization: ""
+  clientType: public
+  grantType: client-credentials
+  algorithm: RS256
+  manageCredentials: true
